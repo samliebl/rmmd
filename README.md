@@ -1,7 +1,7 @@
 
 # rmmd
 
-`rmmd` is a lightweight command-line tool to convert Markdown into HTML. It supports standard input, file processing, and advanced options for wrapping output in a full HTML document.
+`rmmd` is a lightweight command-line tool to convert Markdown into HTML. It supports standard input, file processing, and advanced options for wrapping output in a full HTML document. Built on unified.js.
 
 ## Features
 

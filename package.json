@@ -1,15 +1,15 @@
 {
   "name": "rmmd",
   "version": "1.0.0",
-  "description": "",
+  "description": "Lightweight command-line tool to convert Markdown into HTML. Built on unified.js.",
   "main": "bin/rmmd.js",
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Sam Liebl",
+  "license": "MIT",
   "dependencies": {
     "commander": "^12.1.0",
     "rehype-stringify": "^10.0.1",
