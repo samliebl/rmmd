@@ -6,10 +6,8 @@ import { program } from 'commander';
 import { markdownToHtml } from '../lib/markdownToHtml.js';
 import { wrapInHtmlDocument } from '../lib/wrapHtml.js';
 
-const packageJson = {
-  name: 'rmmd',
-  version: '1.0.0',
-};
+// Dynamically read the package.json file to get the version
+const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
 
 program
   .name(packageJson.name)
