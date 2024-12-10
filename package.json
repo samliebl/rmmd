@@ -1,6 +1,6 @@
 {
   "name": "rmmd",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Lightweight command-line tool to convert Markdown into HTML. Built on unified.js.",
   "main": "bin/rmmd.js",
   "bin": "bin/rmmd.js",
