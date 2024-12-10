@@ -1,9 +1,22 @@
-
 # rmmd
 
 `rmmd` is a lightweight command-line tool to convert Markdown into HTML. It supports standard input, file processing, and advanced options for wrapping output in a full HTML document. Built on unified.js.
 
-## Features
+<h2 id="Contents">Contents</h2>
+
+1. [Features](#Features)
+1. [Installation](#Installation)
+1. [Usage](#Usage)
+1. [Examples](#Examples)
+1. [Output Formats](#OutputFormats)
+1. [Error Handling](#ErrorHandling)
+1. [Developer Notes](#DeveloperNotes)
+1. [Contributing](#Contributing)
+1. [License](#License)
+
+---
+
+<h2 id="Features">Features</h2>
 
 - **Convert Markdown to HTML**: Quickly process Markdown files or input streams into semantic HTML.
 - **Flexible Input Options**: Provide input via a file, stdin, or direct piping from another command.
@@ -15,7 +28,34 @@
   - `--enclose` (`-e`): Wrap output in a fully compliant HTML document.
   - `--version` (`-v`): Output the version.
   - `--help` (`-h`): Display help information.
+  - Use `--custom` (`-c`) to enable custom syntax processing.
+  - Leave out `--custom` to process only basic Markdown.
 - **Modern Web Standards**: Outputs valid HTML5 for browser compatibility.
+- **Custom Markup Syntax**:
+  - `=` wraps text in `<mark>`:
+    ```markdown
+    This is =marked text= in markdown.
+    ```
+    Produces:
+    ```html
+    <p>This is <mark>marked text</mark> in markdown.</p>
+    ```
+  - `+` wraps text in `<dfn>`:
+    ```markdown
+    This is +a definition text+ in markdown.
+    ```
+    Produces:
+    ```html
+    <p>This is <dfn>a definition text</dfn> in markdown.</p>
+    ```
+  - `~` wraps text in `<s>`:
+    ```markdown
+    This is ~a styled text passage~ in markdown.
+    ```
+    Produces:
+    ```html
+    <p>This is <s>a styled text passage</s> in markdown.</p>
+    ```
 
 ## Installation
 
@@ -81,34 +121,46 @@ Display help:
 rmmd -h
 ```
 
-## Examples
+<h2 id="Examples">Examples</h2>
 
 1. Convert Markdown to HTML and print to `stdout`:
    ```bash
    rmmd example.md
-   ```
-
-2. Convert Markdown and write output to a file:
+   ```  
+2. Convert Markdown and write output to a file:  
    ```bash
    rmmd example.md -f result.html
-   ```
-
+   ```  
 3. Convert Markdown, wrap in an HTML document, and print:
    ```bash
    rmmd example.md -e
    ```
-
 4. Convert, wrap, and save to a file:
    ```bash
    rmmd example.md -e -f full-document.html
    ```
-
 5. Pipe Markdown content into `rmmd` and wrap in a document:
    ```bash
    cat example.md | rmmd -e
    ```
+6. Convert Markdown to HTML with basic syntax:
+   ```bash
+   rmmd example.md
+   ```
+7. Convert Markdown to HTML with custom syntax:
+   ```bash
+   rmmd example.md --custom
+   ```
+8. Wrap the output in an HTML document:
+   ```bash
+   rmmd example.md --enclose
+   ```
+9. Combine custom syntax, file output, and HTML wrapping:
+   ```bash
+   rmmd example.md --custom --enclose --file output.html
+   ```
 
-## Output Formats
+<h2 id="OutputFormats">Output Formats</h2>
 
 ### Default HTML Output
 
@@ -135,10 +187,10 @@ Using the `--enclose` option wraps the output in a valid HTML document:
   <h1>Hello, World</h1>
   <p>This is Markdown rendered as HTML.</p>
 </body>
-</html>`
+</html>
 ```
 
-## Error Handling
+<h2 id="ErrorHandling">Error Handling</h2>
 
 The tool provides helpful error messages:
 
@@ -155,7 +207,7 @@ The tool provides helpful error messages:
   error: unknown option '--invalid'
   ```
 
-## Developer Notes
+<h2 id="DeveloperNotes">Developer Notes</h2>
 
 The tool is modular, using separate libraries for Markdown processing and HTML wrapping. It follows modern ESM standards.
 
@@ -164,12 +216,14 @@ The tool is modular, using separate libraries for Markdown processing and HTML w
 ```plaintext
 rmmd/
 |-- bin/
-|   |-- rmmd.js            # CLI logic
+|   |-- rmmd.js               # CLI logic
 |-- lib/
-|   |-- markdownToHtml.js  # Markdown to HTML conversion
-|   |-- wrapHtml.js        # HTML wrapping logic
-|-- package.json           # npm package configuration
-|-- README.md              # Project documentation
+|   |-- customMarkup.js          # Custom markup manager
+|   |-- markdownToHtml.js        # Markdown to HTML conversion
+|   |-- remarkMark.js            # <mark> syntax plugin
+|   |-- remarkDfn.js             # <dfn> syntax plugin
+|   |-- remarkStrikethrough.js   # <s> syntax plugin
+|   |-- wrapHtml.js              # HTML wrapping logic
 ```
 
 ### Internal Modules
@@ -177,9 +231,15 @@ rmmd/
 - `markdownToHtml.js`: Handles Markdown-to-HTML conversion.
 - `wrapHtml.js`: Wraps HTML output in a complete HTML document.
 
-## Contributing
+### Adding New Syntax
 
-We welcome contributions! Follow these steps:
+1. Create a new plugin file in `lib/`.
+2. Register it in `customMarkup.js`.
+3. Enable it in the `customMarkup` function call in `markdownToHtml.js`.
+
+<h2 id="Contributing">Contributing</h2>
+
+Contributions welcome! Follow these steps:
 
 1. Fork the repository.
 2. Create a new branch for your feature:
@@ -196,10 +256,10 @@ We welcome contributions! Follow these steps:
    ```
 5. Open a pull request.
 
-## License
+<h2 id="License">License</h2>
 
 This project is licensed under the MIT License. See the `LICENSE` file for more details.
 
 ---
 
-Enjoy using **rmmd**!
+Enjoy! -SL
