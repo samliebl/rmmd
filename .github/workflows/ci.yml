@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The lower bound is what package.json claims in `engines`, so CI
+        # proves the claim rather than trusting it.
+        node: ['18', '20', '22', '24']
+    name: node ${{ matrix.node }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  package:
+    runs-on: ubuntu-latest
+    name: package installs clean
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      # Install the built tarball into an empty project with production
+      # dependencies only. This is what catches a dependency that is used but
+      # not declared -- the bug that shipped in 2.x.
+      - name: install the tarball in a clean project
+        run: |
+          npm pack --pack-destination /tmp
+          mkdir /tmp/cleanroom && cd /tmp/cleanroom
+          npm init -y
+          npm install /tmp/rmmd-*.tgz --omit=dev
+          echo 'A ==test== of ++every++ [HTML]{abbr HyperText Markup Language}.' \
+            | ./node_modules/.bin/rmmd -c

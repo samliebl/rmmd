@@ -30,6 +30,7 @@ tables and each other, and its output is escaped correctly.
 1. [Using rmmd as a library](#using-rmmd-as-a-library)
 1. [Adding an element](#adding-an-element)
 1. [Upgrading from 2.x](#upgrading-from-2x)
+1. [Releasing](#releasing)
 1. [License](#license)
 
 ## Installation
@@ -388,9 +389,31 @@ the second and third were 2.x tearing `--color=always --width=80` and
 `2^8 then 2^16` in half, and want leaving alone. No tool can tell them apart —
 double the delimiters you meant, and leave the rest.
 
+## Releasing
+
+Tests run on Node 18, 20, 22 and 24, and a separate job installs the built
+tarball into an empty project with production dependencies only — which is what
+catches a dependency that is used but never declared.
+
+Publishing is automated. Tag a version and push it:
+
+```bash
+npm version 3.0.1
+git push --follow-tags
+```
+
+The release workflow re-runs the tests, refuses the tag if it disagrees with
+`package.json`, and publishes with [npm provenance][provenance], so npmjs.com
+records which workflow and which commit produced the tarball. It needs an npm
+automation token stored as the `NPM_TOKEN` repository secret.
+
+`npm publish` run by hand still works; `prepublishOnly` runs the suite first
+and a failure stops the publish.
+
 ## License
 
 MIT. See `LICENSE.txt`.
 
 [unified]: https://unifiedjs.com
 [micromark]: https://github.com/micromark/micromark
+[provenance]: https://docs.npmjs.com/generating-provenance-statements

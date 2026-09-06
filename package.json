@@ -12,7 +12,8 @@
   },
   "type": "module",
   "scripts": {
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "prepublishOnly": "npm test"
   },
   "keywords": [
     "markdown",
@@ -62,5 +63,9 @@
   ],
   "engines": {
     "node": ">=18"
+  },
+  "homepage": "https://github.com/samliebl/rmmd#readme",
+  "bugs": {
+    "url": "https://github.com/samliebl/rmmd/issues"
   }
 }

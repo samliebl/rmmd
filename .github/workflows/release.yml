@@ -1,0 +1,44 @@
+name: Release
+
+# Publishes to npm when a version tag is pushed:
+#
+#     npm version 3.0.0 && git push --follow-tags
+#
+# Requires an automation token from npmjs.com stored as the NPM_TOKEN secret.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  # Required for npm provenance, which records on npmjs.com which workflow
+  # and commit produced the tarball.
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: https://registry.npmjs.org
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+      # Refuse to publish a tag that disagrees with package.json, which is the
+      # easiest way to ship the wrong version.
+      - name: check the tag matches package.json
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg="$(node -p "require('./package.json').version")"
+          if [ "$tag" != "$pkg" ]; then
+            echo "tag $GITHUB_REF_NAME does not match package.json version $pkg" >&2
+            exit 1
+          fi
+
+      - run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
