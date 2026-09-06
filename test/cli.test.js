@@ -57,8 +57,8 @@ test('--custom enables semantic elements', async () => {
 });
 
 test('--elements takes a subset', async () => {
-  const { stdout } = await rmmd(['--elements', 'mark'], '==a== +b+');
-  assert.equal(stdout.trim(), '<p><mark>a</mark> +b+</p>');
+  const { stdout } = await rmmd(['--elements', 'mark'], '==a== ++b++');
+  assert.equal(stdout.trim(), '<p><mark>a</mark> ++b++</p>');
 });
 
 test('-c does not swallow the filename', async () => {

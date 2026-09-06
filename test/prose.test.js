@@ -10,9 +10,10 @@ import { delimiterElements } from '../lib/elements.js';
  * Each line here is text somebody would plausibly write in a document rmmd is
  * meant to render; none of it may produce an element. This corpus is what
  * decided that every delimiter is doubled: at one character, `=`, `^` and `%`
- * matched `--flag=value`, `2^8` and `%d%s`, and while `+` and `~` survived it,
- * a single rule beats a table of exceptions -- and it leaves `~/.bashrc`,
- * `C++`, `i++` and `~50` safe by construction rather than by luck.
+ * matched `--flag=value`, `2^8` and `%d%s`. `+` and `~` survived the corpus,
+ * but a single rule beats a table of exceptions, and doubling leaves
+ * `~/.bashrc`, `C++`, `i++` and `~50` safe by construction rather than by the
+ * luck of a flanking rule.
  */
 const prose = [
   ['shell flags', 'Run with --colour=always --width=80 for output.'],

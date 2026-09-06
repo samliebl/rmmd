@@ -292,10 +292,11 @@ Run the suite with `npm test`.
 Version 3 keeps `-c`, `-e`, `-f` and the three original elements working, but
 two of the delimiters changed. What to know:
 
-- **All three delimiters doubled:** `=marked=` is now `==marked==`, `+dfn+` is
+- **Every delimiter is doubled.** `=marked=` is now `==marked==`, `+dfn+` is
   `++dfn++`, and `~s~` is `~~s~~`. The single forms matched any two markers on
   a line, so `key=value` prose, `--flag=x --flag=y`, `~/.bashrc` and
-  `| a=1 | b=2 |` table cells produced stray elements. See
+  `| a=1 | b=2 |` table cells produced stray elements. A lone marker is now
+  always literal. See
   [Why delimiters are doubled](#why-delimiters-are-doubled).
 - **`~~text~~` is now the strikethrough you already type on GitHub,** and
   `==text==` the highlight you already type in Obsidian.
