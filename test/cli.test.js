@@ -163,3 +163,26 @@ test('a closed pipe is not an error', async () => {
   });
   assert.match(out, /<h1>Heading<\/h1>/);
 });
+
+test('--legacy-check reports 2.x syntax and exits 1', async () => {
+  const f = join(dir, 'legacy.md');
+  await writeFile(f, 'This is =marked text= in markdown.');
+  const { stdout, stderr, code } = await rmmd(['--legacy-check', f]);
+  assert.equal(code, 1);
+  assert.match(stdout, /"=marked text=" would have been <mark> in 2\.x/);
+  assert.match(stderr, /1 passage would render as literal text/);
+});
+
+test('--legacy-check exits 0 on a clean document', async () => {
+  const f = join(dir, 'clean.md');
+  await writeFile(f, 'This is ==marked text== in markdown.');
+  const { stderr, code } = await rmmd(['--legacy-check', f]);
+  assert.equal(code, 0);
+  assert.match(stderr, /No rmmd 2\.x syntax found/);
+});
+
+test('--legacy-check reads stdin', async () => {
+  const { stdout, code } = await rmmd(['--legacy-check'], 'a =b= c');
+  assert.equal(code, 1);
+  assert.match(stdout, /<stdin>/);
+});

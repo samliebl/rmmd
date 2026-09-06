@@ -7,6 +7,7 @@ import { program, Option } from 'commander';
 import { render } from '../lib/render.js';
 import { wrapInHtmlDocument } from '../lib/wrapHtml.js';
 import { allElements, elementTags } from '../lib/elements.js';
+import { findLegacySyntax } from '../lib/legacy.js';
 
 // A downstream reader may close the pipe early (`rmmd big.md | head`).
 // That is normal, not an error: stop quietly rather than crashing on EPIPE.
@@ -71,6 +72,10 @@ program
   .option('--no-gfm', 'Disable tables, task lists, autolinks and footnotes')
   .option('--no-html', 'Drop raw HTML present in the Markdown source')
   .option('--list', 'List the semantic elements and their syntax')
+  .option(
+    '--legacy-check',
+    'Report passages using rmmd 2.x single-delimiter syntax',
+  )
   .addOption(new Option('-f, --file <path>', 'Alias for --output').hideHelp());
 
 program.parse(process.argv);
@@ -110,9 +115,57 @@ async function renderOne(source, input) {
   });
 }
 
+/**
+ * Report 2.x syntax without rendering anything.
+ *
+ * Exits non-zero when something is found, so it can gate a migration.
+ */
+async function legacyCheck(sources) {
+  let total = 0;
+
+  for (const { name, text } of sources) {
+    const found = findLegacySyntax(text);
+    if (found.length === 0) continue;
+
+    total += found.length;
+    stdout.write(`\n${name}\n`);
+    for (const hit of found) {
+      stdout.write(
+        `  ${String(hit.line).padStart(4)}:${String(hit.column).padEnd(3)} ` +
+          `${JSON.stringify(hit.text)} would have been <${hit.tag}> in 2.x\n`,
+      );
+    }
+  }
+
+  if (total === 0) {
+    stderr.write('No rmmd 2.x syntax found.\n');
+    return;
+  }
+
+  stderr.write(
+    `\n${total} passage${total === 1 ? '' : 's'} would render as literal text.\n` +
+      `Double the delimiters you meant as markup; leave the rest alone.\n`,
+  );
+  process.exitCode = 1;
+}
+
 async function main() {
   if (options.list) {
     listElements();
+    return;
+  }
+
+  if (options.legacyCheck) {
+    const sources =
+      files.length > 0
+        ? await Promise.all(
+            files.map(async (name) => ({
+              name,
+              text: await readFile(name, 'utf8'),
+            })),
+          )
+        : [{ name: '<stdin>', text: await readStdin() }];
+    await legacyCheck(sources);
     return;
   }
 

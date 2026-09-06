@@ -192,6 +192,7 @@ is not an error.
 | `--no-gfm` | Disable tables, task lists, autolinks and footnotes |
 | `--no-html` | Drop raw HTML present in the Markdown source |
 | `--list` | List the semantic elements and their syntax |
+| `--legacy-check` | Report passages using 2.x single-delimiter syntax |
 | `-v, --version` | Output the version number |
 | `-h, --help` | Display help |
 
@@ -275,6 +276,7 @@ rmmd/
 │   ├── index.js                   Library entry point
 │   ├── elements.js                The element registry
 │   ├── render.js                  The unified pipeline
+│   ├── legacy.js                  Finds 2.x syntax for --legacy-check
 │   ├── wrapHtml.js                Full-document wrapper
 │   └── syntax/
 │       ├── inlineAttention.js     Delimiter parser (one factory, five elements)
@@ -311,9 +313,58 @@ two of the delimiters changed. What to know:
 - The internal modules `markdownToHtml.js`, `customMarkup.js` and the three
   `remark*.js` plugins are gone, replaced by `lib/render.js` and `lib/syntax/`.
 
-To migrate a document, doubling every delimiter mechanically is usually wrong:
-render with 2.x and 3.x and diff, since the passages that change are largely
-the ones 2.x was getting wrong.
+### What actually changes
+
+Rendering the same documents through 2.3.0 and 3.0.0:
+
+**Without `--custom`, output is byte-identical** apart from a trailing newline.
+This project's own 2.x README renders to the same 214 lines through both
+versions; the only difference is that 3.0.0 terminates the final one. Turning
+GFM on by default changed nothing in it.
+
+**With `--custom`, every 2.x element becomes literal text.** A document written
+the way the 2.x README taught loses all of its markup:
+
+```html
+<!-- 2.3.0 -->  <p>This is <mark>marked text</mark> in markdown.</p>
+<!-- 3.0.0 -->  <p>This is =marked text= in markdown.</p>
+```
+
+Nothing errors — the page just shows `=marked text=` to readers. That is the
+one upgrade hazard, and it is why `--legacy-check` exists.
+
+The same comparison shows what 2.x was doing to ordinary prose:
+
+```html
+<!-- 2.3.0 -->  <p>Copy <s>/.bashrc and </s>/.profile over.
+                Written in C<dfn>+ with C</dfn>+17 support.</p>
+<!-- 3.0.0 -->  <p>Copy ~/.bashrc and ~/.profile over.
+                Written in C++ with C++17 support.</p>
+```
+
+2.x did not merely add stray tags there; it **deleted characters**. `~/.bashrc`
+lost its tilde and `C++` lost a plus.
+
+### Migrating
+
+```bash
+rmmd --legacy-check docs/*.md
+```
+
+```
+docs/guide.md
+     3:5   "+the config file+" would have been <dfn> in 2.x
+     3:52  "=always --width=" would have been <mark> in 2.x
+     6:32  "^8 then 2^" would have been <sup> in 2.x
+```
+
+It exits non-zero when it finds anything, so it can gate a migration in CI.
+
+It reports rather than rewrites, deliberately. Those three lines are two
+different problems: the first was markup the author meant and wants doubled;
+the second and third were 2.x tearing `--colour=always --width=80` and
+`2^8 then 2^16` in half, and want leaving alone. No tool can tell them apart —
+double the delimiters you meant, and leave the rest.
 
 ## License
 
