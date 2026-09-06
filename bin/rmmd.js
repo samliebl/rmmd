@@ -1,62 +1,173 @@
 #!/usr/bin/env node
 
-import { readFile, writeFile } from 'node:fs/promises';
-import { stdin, stdout } from 'node:process';
-import { program } from 'commander';
-import { markdownToHtml } from '../lib/markdownToHtml.js';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { basename, extname, join } from 'node:path';
+import process, { stdin, stdout, stderr } from 'node:process';
+import { program, Option } from 'commander';
+import { render } from '../lib/render.js';
 import { wrapInHtmlDocument } from '../lib/wrapHtml.js';
+import { allElements, elementTags } from '../lib/elements.js';
 
-// Dynamically read the package.json file to get the version
-const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
+// A downstream reader may close the pipe early (`rmmd big.md | head`).
+// That is normal, not an error: stop quietly rather than crashing on EPIPE.
+stdout.on('error', (error) => {
+  if (error.code === 'EPIPE') process.exit(0);
+  throw error;
+});
+
+const packageJson = JSON.parse(
+  await readFile(new URL('../package.json', import.meta.url), 'utf8'),
+);
+
+/** Read all of stdin. */
+function readStdin() {
+  return new Promise((resolve, reject) => {
+    let data = '';
+    stdin.setEncoding('utf8');
+    stdin.on('data', (chunk) => (data += chunk));
+    stdin.on('end', () => resolve(data));
+    stdin.on('error', reject);
+  });
+}
+
+/** Print the element registry as a reference table. */
+function listElements() {
+  const width = Math.max(...allElements.map((e) => e.example.length));
+  stdout.write('\nrmmd semantic elements\n\n');
+  for (const element of allElements) {
+    stdout.write(
+      `  ${element.example.padEnd(width)}  ->  <${element.tag}>\n` +
+        `  ${' '.repeat(width)}      ${element.describe}\n\n`,
+    );
+  }
+  stdout.write(
+    `Enable all with --custom, or a subset with ` +
+      `--elements ${elementTags.slice(0, 2).join(',')}\n\n`,
+  );
+}
 
 program
   .name(packageJson.name)
-  .description('A command-line tool to convert Markdown to HTML')
+  .description(
+    'Convert Markdown to HTML, with syntax for the semantic inline elements\n' +
+      'Markdown leaves out: <mark> <dfn> <s> <sup> <sub> <cite> <q> <abbr>.',
+  )
   .version(packageJson.version, '-v, --version', 'Output the version number')
-  .option('-f, --file <path>', 'Write output to a file instead of stdout')
-  .option('-e, --enclose', 'Wrap output in a fully compliant HTML document')
-  .option('-c, --custom', 'Enable all custom syntax processing')
-  .argument('[filepath]', 'Path to a Markdown file to process (optional)', null);
+  .argument('[files...]', 'Markdown files to process; omit to read stdin')
+  .option('-o, --output <path>', 'Write output to a file instead of stdout')
+  .option('-d, --out-dir <dir>', 'Write each input to its own .html file here')
+  .option('-e, --enclose', 'Wrap output in a full HTML document')
+  .option('-c, --custom', 'Enable rmmd\'s semantic elements')
+  .option(
+    '--elements <list>',
+    `Enable only these elements, comma separated\n` +
+      `                             (${elementTags.join(', ')})`,
+  )
+  .option('--title <text>', 'Document title for --enclose (default: first H1)')
+  .option('--lang <code>', 'Document language for --enclose', 'en')
+  .option('--css <href...>', 'Stylesheet to link from --enclose')
+  .option('--no-gfm', 'Disable tables, task lists, autolinks and footnotes')
+  .option('--no-html', 'Drop raw HTML present in the Markdown source')
+  .option('--list', 'List the semantic elements and their syntax')
+  .addOption(new Option('-f, --file <path>', 'Alias for --output').hideHelp());
 
 program.parse(process.argv);
 
 const options = program.opts();
-const filepath = program.args[0];
+const files = program.args;
+
+/**
+ * Resolve --custom / --elements into what render() expects.
+ *
+ * These are two flags rather than one optional-argument flag because
+ * `rmmd -c file.md` would otherwise read the filename as the element list.
+ */
+function customSelection() {
+  if (options.elements !== undefined) {
+    return options.elements
+      .split(',')
+      .map((name) => name.trim())
+      .filter(Boolean);
+  }
+  return options.custom ? true : false;
+}
+
+async function renderOne(source, input) {
+  const { html, title } = await render(input, {
+    elements: customSelection(),
+    gfm: options.gfm,
+    allowHtml: options.html,
+  });
+
+  if (!options.enclose) return html;
+
+  return wrapInHtmlDocument(html, {
+    title: options.title ?? title ?? (source ? basename(source) : 'Untitled'),
+    lang: options.lang,
+    stylesheets: options.css ?? [],
+  });
+}
 
 async function main() {
-  try {
-    let input = '';
+  if (options.list) {
+    listElements();
+    return;
+  }
 
-    if (filepath) {
-      input = await readFile(filepath, 'utf8');
-    } else if (!stdin.isTTY) {
-      input = await new Promise((resolve, reject) => {
-        let data = '';
-        stdin.on('data', chunk => (data += chunk));
-        stdin.on('end', () => resolve(data));
-        stdin.on('error', reject);
-      });
-    } else {
-      console.error('No input provided. Use a file path or pipe Markdown content.');
-      process.exit(1);
+  const output = options.output ?? options.file;
+
+  // Per-file output: each input becomes its own document.
+  if (options.outDir) {
+    if (files.length === 0) {
+      throw new Error('--out-dir needs at least one input file.');
     }
 
-    // Process the Markdown with or without custom syntax
-    const output = await markdownToHtml(input, { useCustomSyntax: options.custom });
+    await mkdir(options.outDir, { recursive: true });
 
-    // Optionally wrap in a full HTML document
-    const finalOutput = options.enclose ? wrapInHtmlDocument(output) : output;
-
-    if (options.file) {
-      await writeFile(options.file, finalOutput, 'utf8');
-      console.log(`HTML output written to ${options.file}`);
-    } else {
-      stdout.write(finalOutput);
+    for (const source of files) {
+      const result = await renderOne(source, await readFile(source, 'utf8'));
+      const target = join(
+        options.outDir,
+        `${basename(source, extname(source))}.html`,
+      );
+      await writeFile(target, result, 'utf8');
+      stderr.write(`${source} -> ${target}\n`);
     }
-  } catch (err) {
-    console.error('Error:', err.message);
-    process.exit(1);
+
+    return;
+  }
+
+  let results;
+
+  if (files.length > 0) {
+    results = [];
+    for (const source of files) {
+      results.push(await renderOne(source, await readFile(source, 'utf8')));
+    }
+  } else if (!stdin.isTTY) {
+    results = [await renderOne(null, await readStdin())];
+  } else {
+    // Nothing piped and no file named: show help rather than hanging.
+    program.outputHelp({ error: true });
+    stderr.write('\nNo input. Name a Markdown file or pipe content in.\n');
+    process.exitCode = 1;
+    return;
+  }
+
+  // Always leave the stream on a newline boundary.
+  const joined = results.join('\n');
+  const result = joined.endsWith('\n') ? joined : `${joined}\n`;
+
+  if (output) {
+    await writeFile(output, result, 'utf8');
+    // Status goes to stderr so stdout stays a clean data stream.
+    stderr.write(`HTML written to ${output}\n`);
+  } else {
+    stdout.write(result);
   }
 }
 
-main();
+main().catch((error) => {
+  stderr.write(`rmmd: ${error.message}\n`);
+  process.exitCode = 1;
+});

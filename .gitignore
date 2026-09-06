@@ -1,3 +1,5 @@
-test*
 node_modules
 .DS_Store
+
+# Scratch files; the tracked suite lives in test/
+test-*

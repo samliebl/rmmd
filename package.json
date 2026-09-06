@@ -1,8 +1,8 @@
 {
   "name": "rmmd",
-  "version": "2.3.0",
-  "description": "Lightweight command-line tool to convert Markdown into HTML. Built on unified.js.",
-  "main": "bin/rmmd.js",
+  "version": "3.0.0",
+  "description": "Convert Markdown to HTML, with syntax for the semantic inline elements Markdown leaves out: mark, dfn, s, sup, sub, cite, q, abbr. Built on unified.",
+  "main": "./lib/index.js",
   "bin": {
     "rmmd": "./bin/rmmd.js"
   },
@@ -12,16 +12,55 @@
   },
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test test/*.test.js"
   },
-  "keywords": [],
+  "keywords": [
+    "markdown",
+    "html",
+    "cli",
+    "unified",
+    "remark",
+    "micromark",
+    "semantic-html",
+    "mark",
+    "dfn",
+    "abbr"
+  ],
   "author": "Sam Liebl",
   "license": "MIT",
   "dependencies": {
     "commander": "^12.1.0",
+    "mdast-util-gfm-autolink-literal": "^2.0.1",
+    "mdast-util-gfm-footnote": "^2.1.0",
+    "mdast-util-gfm-table": "^2.0.0",
+    "mdast-util-gfm-task-list-item": "^2.0.0",
+    "mdast-util-to-string": "^4.0.0",
+    "micromark-extension-gfm-autolink-literal": "^2.1.0",
+    "micromark-extension-gfm-footnote": "^2.1.0",
+    "micromark-extension-gfm-table": "^2.1.1",
+    "micromark-extension-gfm-task-list-item": "^2.1.0",
+    "micromark-util-character": "^2.1.1",
+    "micromark-util-chunked": "^2.0.1",
+    "micromark-util-classify-character": "^2.0.1",
+    "micromark-util-resolve-all": "^2.0.1",
+    "micromark-util-symbol": "^2.0.1",
     "rehype-stringify": "^10.0.1",
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.1",
-    "unified": "^11.0.5"
+    "unified": "^11.0.5",
+    "unist-util-visit": "^5.1.0"
+  },
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "README.md",
+    "LICENSE.txt"
+  ],
+  "engines": {
+    "node": ">=18"
   }
 }
