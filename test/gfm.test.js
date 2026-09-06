@@ -23,15 +23,15 @@ test('GFM can be turned off', async () => {
 
 test('the tilde belongs to rmmd, not to GFM strikethrough', async () => {
   // GFM would render <del>; in rmmd the tilde means <s> -- "no longer
-  // accurate" rather than "edited out" -- in both single and double form.
-  const single = await render('~struck~', { elements: true });
-  assert.equal(single.html.trim(), '<p><s>struck</s></p>');
-
+  // accurate" rather than "edited out".
   const double = await render('~~struck~~', { elements: true });
   assert.equal(double.html.trim(), '<p><s>struck</s></p>');
-
-  assert.doesNotMatch(single.html, /<del>/);
   assert.doesNotMatch(double.html, /<del>/);
+
+  // A single tilde means nothing, which is what keeps `~/.bashrc` and `~50`
+  // intact anywhere they appear.
+  const single = await render('~struck~', { elements: true });
+  assert.equal(single.html.trim(), '<p>~struck~</p>');
 });
 
 test('semantic elements coexist with GFM tables', async () => {

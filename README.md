@@ -8,7 +8,7 @@ Markdown gives you `<em>` and `<strong>`. It has never given you `<mark>`,
 without dropping to raw HTML in the middle of your prose.
 
 ```bash
-echo 'The +bibliography+ lists ==every== [HTML]{abbr HyperText Markup Language} source.' | rmmd -c
+echo 'The ++bibliography++ lists ==every== [HTML]{abbr HyperText Markup Language} source.' | rmmd -c
 ```
 
 ```html
@@ -24,7 +24,7 @@ tables and each other, and its output is escaped correctly.
 1. [Installation](#installation)
 1. [The semantic elements](#the-semantic-elements)
 1. [Abbreviation definitions](#abbreviation-definitions)
-1. [Why some delimiters are doubled](#why-some-delimiters-are-doubled)
+1. [Why delimiters are doubled](#why-delimiters-are-doubled)
 1. [Usage](#usage)
 1. [Options](#options)
 1. [Using rmmd as a library](#using-rmmd-as-a-library)
@@ -47,8 +47,8 @@ Custom syntax is **off by default**. Enable it with `--custom` (`-c`).
 | Syntax | Element | Meaning |
 | --- | --- | --- |
 | `==marked==` | `<mark>` | Text of special relevance in its context |
-| `+defined term+` | `<dfn>` | The defining instance of a term |
-| `~struck~` | `<s>` | No longer accurate or no longer relevant |
+| `++defined term++` | `<dfn>` | The defining instance of a term |
+| `~~struck~~` | `<s>` | No longer accurate or no longer relevant |
 | `e^^iπ^^` | `<sup>` | Superscript |
 | `H%%2%%O` | `<sub>` | Subscript |
 | `[The Waste Land]{cite}` | `<cite>` | The title of a cited creative work |
@@ -57,10 +57,10 @@ Custom syntax is **off by default**. Enable it with `--custom` (`-c`).
 
 Run `rmmd --list` to print this table from the CLI.
 
-The five frequent elements use a paired delimiter. The other three use the
-`[text]{tag}` span form, because they are either rarer or need an attribute —
-`{q}` takes an optional value that becomes `cite`, `{abbr}` one that becomes
-`title`.
+The five frequent elements use a paired delimiter, always doubled. The other
+three use the `[text]{tag}` span form, because they are either rarer or need an
+attribute — `{q}` takes an optional value that becomes `cite`, `{abbr}` one
+that becomes `title`.
 
 Both forms parse their content as ordinary Markdown, so they nest freely:
 
@@ -78,15 +78,16 @@ rmmd --elements mark,dfn notes.md      # just <mark> and <dfn>
 `--custom` is a plain switch and `--elements` takes the list, so that
 `rmmd -c notes.md` cannot mistake the filename for an element name.
 
-### A note on `~`
+### A note on `~~`
 
-GitHub Flavored Markdown reads `~~text~~` as `<del>`. `rmmd` reads both
-`~text~` and `~~text~~` as `<s>`, which is the distinction the HTML spec draws:
-`<del>` is content *edited out* of a document, `<s>` is content *no longer
-accurate*. Prose wants the second far more often than the first. The other GFM
-constructs — tables, task lists, autolinks, footnotes — work as normal.
+You already type `~~struck~~` on GitHub, and it works here — but it produces
+`<s>`, not `<del>`. That is the distinction the HTML spec draws: `<del>` is
+content *edited out* of a document, `<s>` is content *no longer accurate*.
+Prose wants the second far more often than the first.
 
-If you want `<del>`, write it as HTML; raw HTML passes through by default.
+The other GFM constructs — tables, task lists, autolinks, footnotes — work as
+normal. If you want `<del>`, write it as HTML; raw HTML passes through by
+default.
 
 ## Abbreviation definitions
 
@@ -113,11 +114,14 @@ occurrence.
 This is the syntax Markdown Extra established, and it needs `<abbr>` to be
 enabled — `--custom`, or `--elements abbr`.
 
-## Why some delimiters are doubled
+## Why delimiters are doubled
 
-`==mark==` is doubled and `+dfn+` is not, which looks arbitrary until you write
-technical prose through it. These delimiters are ordinary characters, and
-flanking rules alone do not save them:
+**One rule: every delimiter is doubled.** A single `=`, `+`, `~`, `^` or `%`
+never means anything.
+
+That rule exists because these are ordinary characters, and CommonMark's
+flanking rules alone do not save them. With single delimiters, real prose comes
+apart:
 
 | Written | With a single delimiter | With a doubled one |
 | --- | --- | --- |
@@ -126,15 +130,16 @@ flanking rules alone do not save them:
 | `Compute 2^8 then 2^16` | `Compute 2<sup>8 then 2</sup>16` | left alone |
 | `Format with %d%s` | `Format with <sub>d</sub>s` | left alone |
 
-`+` and `~` come through a corpus of shell flags, `C++`, `~/.bashrc`, `5+`
-ratings and approximations like `~50` without a single false match, so they
-stay at one character. `=`, `^` and `%` do not, so they take two.
+`~/.bashrc`, `C++`, `i++`, `5+` ratings, `~50` approximations, `~~~` fences and
+`printf "100%%"` are all safe by construction rather than by luck.
 
-`test/prose.test.js` holds that corpus. It is a regression test: any delimiter
-change has to keep ordinary prose intact.
+`test/prose.test.js` holds the corpus this was measured against — 29 lines of
+ordinary technical writing, none of which may produce an element. Any delimiter
+change has to keep it intact.
 
-As a bonus, `==highlight==` is the convention Obsidian, Bear and Discourse
-already use, so marked text moves between them and `rmmd` unchanged.
+The doubled forms are also the ones people already know: `==highlight==` is
+what Obsidian, Bear and Discourse use, and `~~struck~~` is what GitHub uses.
+Two of the five need no learning at all.
 
 ## Usage
 
@@ -232,14 +237,16 @@ and nothing else.
 
 A delimiter element. Pick a character Markdown does not already use — `*`, `_`,
 `` ` ``, `[`, `]`, `!`, `#`, `>` and `-` are taken, and `|` is best left to
-tables. Set `minSize: 2` if the character turns up in ordinary prose:
+tables. Keep `minSize: 2` unless you have measured that a single character is
+safe:
 
 ```js
 {
   tag: 'kbd',
   node: 'keyboard',
   marker: ';',
-  example: ';Ctrl;',
+  minSize: 2,
+  example: ';;Ctrl;;',
   describe: 'User input from a keyboard.',
 }
 ```
@@ -285,17 +292,17 @@ Run the suite with `npm test`.
 Version 3 keeps `-c`, `-e`, `-f` and the three original elements working, but
 two of the delimiters changed. What to know:
 
-- **`=marked=` is now `==marked==`.** The single form matched any two `=` on a
-  line, so `key=value` prose, `--flag=x --flag=y` and `| a=1 | b=2 |` table
-  cells all produced stray `<mark>` elements. See
-  [Why some delimiters are doubled](#why-some-delimiters-are-doubled).
-- **`+dfn+` and `~s~` are unchanged.** Both survive the prose corpus at one
-  character.
+- **All three delimiters doubled:** `=marked=` is now `==marked==`, `+dfn+` is
+  `++dfn++`, and `~s~` is `~~s~~`. The single forms matched any two markers on
+  a line, so `key=value` prose, `--flag=x --flag=y`, `~/.bashrc` and
+  `| a=1 | b=2 |` table cells produced stray elements. See
+  [Why delimiters are doubled](#why-delimiters-are-doubled).
+- **`~~text~~` is now the strikethrough you already type on GitHub,** and
+  `==text==` the highlight you already type in Obsidian.
 - **Delimiters now follow flanking rules,** so `3 = 3 = 3` and `a ~ b` are left
   alone where 2.x mangled them.
 - **Content is escaped.** 2.x assembled HTML strings by hand, so `+a & b+`
   emitted an unescaped `&`. Elements are now real syntax-tree nodes.
-- **`~~text~~` renders `<s>`,** where before it produced `<s>~text</s>~`.
 - **GFM is on** by default; disable with `--no-gfm`.
 - **Status messages moved to stderr,** so stdout is clean in a pipeline.
 - `--custom` no longer takes a value; use `--elements` for a subset.
@@ -303,9 +310,9 @@ two of the delimiters changed. What to know:
 - The internal modules `markdownToHtml.js`, `customMarkup.js` and the three
   `remark*.js` plugins are gone, replaced by `lib/render.js` and `lib/syntax/`.
 
-To migrate a document, `sed -i 's/=\([^=]*\)=/==\1==/g'` is usually wrong —
-check by rendering with 2.x and 3.x and diffing, since the cases that change
-are the ones 2.x was getting wrong.
+To migrate a document, doubling every delimiter mechanically is usually wrong:
+render with 2.x and 3.x and diff, since the passages that change are largely
+the ones 2.x was getting wrong.
 
 ## License
 

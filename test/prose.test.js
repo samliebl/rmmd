@@ -8,9 +8,11 @@ import { delimiterElements } from '../lib/elements.js';
  *
  * A delimiter is only worth having if ordinary technical prose survives it.
  * Each line here is text somebody would plausibly write in a document rmmd is
- * meant to render; none of it may produce an element. This is what forced
- * `=`, `^` and `%` to be doubled -- at a single character they matched
- * `--flag=value`, `2^8` and `%d%s` respectively.
+ * meant to render; none of it may produce an element. This corpus is what
+ * decided that every delimiter is doubled: at one character, `=`, `^` and `%`
+ * matched `--flag=value`, `2^8` and `%d%s`, and while `+` and `~` survived it,
+ * a single rule beats a table of exceptions -- and it leaves `~/.bashrc`,
+ * `C++`, `i++` and `~50` safe by construction rather than by luck.
  */
 const prose = [
   ['shell flags', 'Run with --colour=always --width=80 for output.'],
@@ -33,6 +35,13 @@ const prose = [
   ['urls with tildes', 'See http://x.com/a~b and http://y.com/c~d.'],
   ['emoticons', 'Nice work :^) and also :^D there.'],
   ['equations', 'We know x = y and y = z, so x = z.'],
+  ['increment', 'Loop while i++ and j++ advance.'],
+  ['C++ repeated', 'From C++ to C++, nothing changed.'],
+  ['spaced plus', 'Compute a ++ b in that dialect.'],
+  ['string concat', 'Use "a" + "b" + "c" to join.'],
+  ['diff markers', 'Lines with ++ added and -- removed.'],
+  ['tilde fences', 'A ~~~ fence and another ~~~ fence inline.'],
+  ['spaced tilde', 'Match a ~~ b in that notation.'],
   ['arrows', 'The a -> b => c pipeline runs nightly.'],
   ['math ranges', 'Values from 10%-20% are typical.'],
 ];
@@ -49,6 +58,14 @@ for (const [label, text] of prose) {
     );
   });
 }
+
+test('a single delimiter never means anything', async () => {
+  // The whole safety argument rests on this: one character is always literal.
+  for (const marker of ['=', '+', '~', '^', '%']) {
+    const { html } = await render(`a ${marker}x${marker} b`, { elements: true });
+    assert.doesNotMatch(html, elementPattern, `${marker}x${marker} should be literal`);
+  }
+});
 
 test('every delimiter element still matches when written deliberately', async () => {
   // The corpus above proves the delimiters are quiet; this proves they work.
