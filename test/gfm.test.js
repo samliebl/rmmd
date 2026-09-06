@@ -35,7 +35,7 @@ test('the tilde belongs to rmmd, not to GFM strikethrough', async () => {
 });
 
 test('semantic elements coexist with GFM tables', async () => {
-  const { html } = await render('| a |\n|---|\n| =hi= |', { elements: true });
+  const { html } = await render('| a |\n|---|\n| ==hi== |', { elements: true });
   assert.match(html, /<td><mark>hi<\/mark><\/td>/);
 });
 

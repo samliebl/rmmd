@@ -49,15 +49,15 @@ test('reads a file', async () => {
 });
 
 test('--custom enables semantic elements', async () => {
-  const plain = await rmmd([], '=x=');
-  assert.equal(plain.stdout.trim(), '<p>=x=</p>');
+  const plain = await rmmd([], '==x==');
+  assert.equal(plain.stdout.trim(), '<p>==x==</p>');
 
-  const custom = await rmmd(['-c'], '=x=');
+  const custom = await rmmd(['-c'], '==x==');
   assert.equal(custom.stdout.trim(), '<p><mark>x</mark></p>');
 });
 
 test('--elements takes a subset', async () => {
-  const { stdout } = await rmmd(['--elements', 'mark'], '=a= +b+');
+  const { stdout } = await rmmd(['--elements', 'mark'], '==a== +b+');
   assert.equal(stdout.trim(), '<p><mark>a</mark> +b+</p>');
 });
 
@@ -65,7 +65,7 @@ test('-c does not swallow the filename', async () => {
   // `-c` is a boolean precisely so this works; an optional option-argument
   // would read `f` as the element list.
   const f = join(dir, 'swallow.md');
-  await writeFile(f, '=x=');
+  await writeFile(f, '==x==');
   const { stdout, code } = await rmmd(['-c', f]);
   assert.equal(code, 0);
   assert.equal(stdout.trim(), '<p><mark>x</mark></p>');

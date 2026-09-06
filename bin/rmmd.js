@@ -41,7 +41,9 @@ function listElements() {
     );
   }
   stdout.write(
-    `Enable all with --custom, or a subset with ` +
+    `  *[TERM]: expansion${' '.repeat(Math.max(0, width - 18))}  ->  <abbr>\n` +
+      `  ${' '.repeat(width)}      Defines an abbreviation, expanded everywhere.\n\n` +
+      `Enable all with --custom, or a subset with ` +
       `--elements ${elementTags.slice(0, 2).join(',')}\n\n`,
   );
 }
