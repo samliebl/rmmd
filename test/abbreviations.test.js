@@ -90,3 +90,31 @@ test('expansion works inside headings and lists', async () => {
   assert.match(out, /<h1>The <abbr title="Application Programming Interface">API<\/abbr><\/h1>/);
   assert.match(out, /<li><abbr title="Application Programming Interface">API<\/abbr> note<\/li>/);
 });
+
+test('an over-long term is ignored rather than crashing', async () => {
+  // A 50k-character term once built a pattern the regex engine refused to
+  // compile, throwing an opaque SyntaxError from inside the renderer.
+  const term = 'A'.repeat(50000);
+  const out = await html(`*[${term}]: expansion\n\n${term}`);
+  assert.doesNotMatch(out, /<abbr/);
+});
+
+test('a term at the length limit still works', async () => {
+  const term = 'B'.repeat(100);
+  const out = await html(`*[${term}]: ok\n\n${term}`);
+  assert.match(out, /<abbr title="ok">/);
+});
+
+test('very many definitions are matched in batches', async () => {
+  const defs = Array.from({ length: 20000 }, (_, i) => `*[T${i}]: E${i}`).join('\n');
+  const body = Array.from({ length: 50 }, (_, i) => `T${i} here.`).join(' ');
+  const out = await html(`${defs}\n\n${body}`);
+  assert.equal((out.match(/<abbr/g) ?? []).length, 50);
+});
+
+test('longest match still wins across batches', async () => {
+  // Enough terms to force several batches, with an overlapping pair.
+  const filler = Array.from({ length: 5000 }, (_, i) => `*[F${i}]: f${i}`).join('\n');
+  const out = await html(`${filler}\n*[HTML]: HyperText\n*[HTML5]: HyperText 5\n\nHTML5 here.`);
+  assert.match(out, /<abbr title="HyperText 5">HTML5<\/abbr>/);
+});

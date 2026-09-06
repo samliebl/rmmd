@@ -125,7 +125,7 @@ apart:
 
 | Written | With a single delimiter | With a doubled one |
 | --- | --- | --- |
-| `--colour=always --width=80` | `--colour<mark>always --width</mark>80` | left alone |
+| `--color=always --width=80` | `--color<mark>always --width</mark>80` | left alone |
 | `key=value, other=thing` | `key<mark>value, other</mark>thing` | left alone |
 | `Compute 2^8 then 2^16` | `Compute 2<sup>8 then 2</sup>16` | left alone |
 | `Format with %d%s` | `Format with <sub>d</sub>s` | left alone |
@@ -176,6 +176,23 @@ rmmd post.md -c -e --css /style.css -o post.html
 Status messages go to stderr and the rendered HTML to stdout, so `rmmd` behaves
 in a pipeline. Errors exit non-zero, and a closed pipe (`rmmd big.md | head`)
 is not an error.
+
+`--out-dir` names each output after its input, so two inputs from different
+directories can collide. `rmmd a/notes.md b/notes.md --out-dir site/` refuses
+the whole run rather than letting the second write destroy the first, and
+`--out-dir` cannot be combined with `--output`.
+
+### Limits
+
+Markdown nested thousands of levels deep — a document that is ten thousand
+nested blockquotes — exhausts the call stack inside `mdast-to-hast` and is
+reported as such rather than converted. This is upstream behavior, reproducible
+with `remark-parse` and `remark-rehype` alone; ordinary documents are nowhere
+near it.
+
+An abbreviation term longer than 100 characters is ignored, on the grounds that
+it is not an abbreviation. Any number of definitions is fine; they are matched
+in batches.
 
 ## Options
 
@@ -287,7 +304,12 @@ rmmd/
 └── test/
 ```
 
-Run the suite with `npm test`.
+Run the suite with `npm test` — 121 tests, about five seconds.
+
+Beyond the unit tests, the suite carries two files worth knowing about.
+`test/prose.test.js` is the corpus that decides the delimiters. `test/robustness.test.js` runs a bounded deterministic fuzz plus the malformed
+inputs — unclosed spans, lone surrogates, BOMs, CRLF, combining marks, ragged
+tables, self-referential footnotes — that must render rather than throw.
 
 ## Upgrading from 2.x
 
@@ -362,7 +384,7 @@ It exits non-zero when it finds anything, so it can gate a migration in CI.
 
 It reports rather than rewrites, deliberately. Those three lines are two
 different problems: the first was markup the author meant and wants doubled;
-the second and third were 2.x tearing `--colour=always --width=80` and
+the second and third were 2.x tearing `--color=always --width=80` and
 `2^8 then 2^16` in half, and want leaving alone. No tool can tell them apart —
 double the delimiters you meant, and leave the rest.
 

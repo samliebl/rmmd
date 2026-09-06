@@ -30,7 +30,7 @@ test('reports prose that 2.x would have corrupted', () => {
   // These are the cases where 2.x was wrong, not the author. They are
   // reported for the same reason: the rendering changes, and only the author
   // can say which passages were meant as markup.
-  const found = findLegacySyntax('Pass --colour=always --width=80 to it.');
+  const found = findLegacySyntax('Pass --color=always --width=80 to it.');
   assert.equal(found.length, 1);
   assert.equal(found[0].text, '=always --width=');
 });

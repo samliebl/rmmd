@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { mkdtemp, writeFile, readFile } from 'node:fs/promises';
+import { mkdtemp, writeFile, readFile, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -185,4 +185,69 @@ test('--legacy-check reads stdin', async () => {
   const { stdout, code } = await rmmd(['--legacy-check'], 'a =b= c');
   assert.equal(code, 1);
   assert.match(stdout, /<stdin>/);
+});
+
+test('deeply nested input fails with a useful message, not a stack trace', async () => {
+  const f = join(dir, 'deep.md');
+  await writeFile(f, '>'.repeat(10000) + ' text');
+  const { stderr, code } = await rmmd([f]);
+  assert.equal(code, 1);
+  assert.match(stderr, /nests too deeply/);
+  assert.doesNotMatch(stderr, /at Object|call stack/);
+});
+
+test('--out-dir refuses inputs that would overwrite each other', async () => {
+  // Different directories, same basename: both map to one output file. The
+  // second write would silently destroy the first.
+  const a = join(dir, 'coll-a');
+  const b = join(dir, 'coll-b');
+  const out = join(dir, 'coll-out');
+  await mkdir(a, { recursive: true });
+  await mkdir(b, { recursive: true });
+  await writeFile(join(a, 'same.md'), '# A');
+  await writeFile(join(b, 'same.md'), '# B');
+
+  const { stderr, code } = await rmmd([
+    '--out-dir', out, join(a, 'same.md'), join(b, 'same.md'),
+  ]);
+  assert.equal(code, 1);
+  assert.match(stderr, /would both be written to/);
+  // Nothing is written, not even the first file.
+  await assert.rejects(() => readFile(join(out, 'same.html'), 'utf8'));
+});
+
+test('--out-dir accepts distinct basenames', async () => {
+  const out = join(dir, 'fine-out');
+  const a = join(dir, 'one-a.md');
+  const b = join(dir, 'one-b.md');
+  await writeFile(a, '# A');
+  await writeFile(b, '# B');
+  const { code } = await rmmd(['--out-dir', out, a, b]);
+  assert.equal(code, 0);
+  assert.match(await readFile(join(out, 'one-a.html'), 'utf8'), /<h1>A<\/h1>/);
+  assert.match(await readFile(join(out, 'one-b.html'), 'utf8'), /<h1>B<\/h1>/);
+});
+
+test('--out-dir and --output together is an error', async () => {
+  const f = join(dir, 'both.md');
+  await writeFile(f, '# X');
+  const { stderr, code } = await rmmd([
+    f, '-o', join(dir, 'both.html'), '--out-dir', join(dir, 'both-dir'),
+  ]);
+  assert.equal(code, 1);
+  assert.match(stderr, /use one or the other/);
+});
+
+test('a directory given as input fails cleanly', async () => {
+  const d = join(dir, 'adir.md');
+  await mkdir(d, { recursive: true });
+  const { stderr, code } = await rmmd([d]);
+  assert.equal(code, 1);
+  assert.match(stderr, /rmmd: /);
+});
+
+test('empty input produces empty output, not an error', async () => {
+  const { stdout, code } = await rmmd([], '');
+  assert.equal(code, 0);
+  assert.equal(stdout.trim(), '');
 });

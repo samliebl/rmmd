@@ -155,6 +155,8 @@ async function main() {
     return;
   }
 
+  const output = options.output ?? options.file;
+
   if (options.legacyCheck) {
     const sources =
       files.length > 0
@@ -169,7 +171,12 @@ async function main() {
     return;
   }
 
-  const output = options.output ?? options.file;
+  if (options.outDir && output) {
+    throw new Error(
+      '--out-dir writes one file per input and --output writes a single ' +
+        'file; use one or the other.',
+    );
+  }
 
   // Per-file output: each input becomes its own document.
   if (options.outDir) {
@@ -177,14 +184,27 @@ async function main() {
       throw new Error('--out-dir needs at least one input file.');
     }
 
-    await mkdir(options.outDir, { recursive: true });
-
+    // Inputs from different directories can share a basename. Refuse rather
+    // than let the second write silently destroy the first.
+    const targets = new Map();
     for (const source of files) {
-      const result = await renderOne(source, await readFile(source, 'utf8'));
       const target = join(
         options.outDir,
         `${basename(source, extname(source))}.html`,
       );
+      if (targets.has(target)) {
+        throw new Error(
+          `${source} and ${targets.get(target)} would both be written to ` +
+            `${target}. Rename one, or run them separately.`,
+        );
+      }
+      targets.set(target, source);
+    }
+
+    await mkdir(options.outDir, { recursive: true });
+
+    for (const [target, source] of targets) {
+      const result = await renderOne(source, await readFile(source, 'utf8'));
       await writeFile(target, result, 'utf8');
       stderr.write(`${source} -> ${target}\n`);
     }
@@ -223,6 +243,15 @@ async function main() {
 }
 
 main().catch((error) => {
-  stderr.write(`rmmd: ${error.message}\n`);
+  // Markdown nested thousands of levels deep exhausts the stack inside
+  // mdast-to-hast. Say so, rather than repeating the engine's message.
+  if (error instanceof RangeError && /call stack/i.test(error.message)) {
+    stderr.write(
+      'rmmd: the document nests too deeply to convert ' +
+        '(thousands of levels of list, quote or emphasis).\n',
+    );
+  } else {
+    stderr.write(`rmmd: ${error.message}\n`);
+  }
   process.exitCode = 1;
 });

@@ -16,7 +16,7 @@ import { delimiterElements } from '../lib/elements.js';
  * luck of a flanking rule.
  */
 const prose = [
-  ['shell flags', 'Run with --colour=always --width=80 for output.'],
+  ['shell flags', 'Run with --color=always --width=80 for output.'],
   ['yaml-ish', 'key=value, other=thing, third=item'],
   ['js equality', 'If a == b and c == d then continue.'],
   ['js strict equality', 'Use a === b and c === d instead.'],
